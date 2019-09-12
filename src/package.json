@@ -1,0 +1,26 @@
+{
+  "name": "assettrackingblueprint",
+  "version": "1.0.0",
+  "description": "A Mapbox blueprint for deloying a serverless Asset Tracking pipeline with Pulumi.",
+  "main": "src/index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mapbox/assetTrackingBlueprint.git"
+  },
+  "author": "Mapbox Solutions Architecture <solutions_architecture@mapbox.com>",
+  "license": "BSD-3-Clause",
+  "bugs": {
+    "url": "https://github.com/mapbox/assetTrackingBlueprint/issues"
+  },
+  "homepage": "https://github.com/mapbox/assetTrackingBlueprint#readme",
+  "dependencies": {
+    "@pulumi/aws": "^1.0.0",
+    "@pulumi/awsx": "^0.18.10",
+    "@pulumi/pulumi": "^1.0.0",
+    "@pulumi/random": "^1.0.0",
+    "@turf/helpers": "^6.1.4",
+    "aws-sdk": "^2.505.0",
+    "axios": "^0.19.0",
+    "terrain-rgb-query": "^0.2.0"
+  }
+}

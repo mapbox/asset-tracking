@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>AT Inspector</title>
+    <meta
+      name="viewport"
+      content="initial-scale=1,maximum-scale=1,user-scalable=no"
+    />
+    <script src="https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.js"></script>
+    <link
+      href="https://api.tiles.mapbox.com/mapbox-gl-js/v1.2.0/mapbox-gl.css"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+      }
+
+      #map {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 100%;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="map"></div>
+    <script>
+      var transformRequest = function(url, resourceType) {
+        const isMapboxRequest =
+          url.slice(8, 22) === "api.mapbox.com" ||
+          url.slice(10, 26) === "tiles.mapbox.com";
+        return {
+          url: isMapboxRequest
+            ? url.replace("?", "?pluginName=ATBlueprint&")
+            : url
+        };
+      };
+
+      const center = [-122.333275, 47.606119];
+      mapboxgl.accessToken = "$$MAPBOX$$";
+      const map = new mapboxgl.Map({
+        container: "map",
+        style: "mapbox://styles/mbxsolutions/cjzsx4r1z0fa81cogf543w0io",
+        center: center,
+        zoom: 11,
+        transformRequest: transformRequest
+      });
+
+      map.on("style.load", () => {
+        // Add a dummy point to initialize the layer before recieving a live position
+        map.addSource("sample", {
+          type: "geojson",
+          data: {
+            type: "Feature",
+            geometry: {
+              type: "Point",
+              coordinates: center
+            },
+            properties: {
+              id: 0,
+              elevation: 0,
+              ts: 0
+            }
+          },
+          generateId: true
+        });
+
+        //Add circle point layer from the live asset tracking pipeline
+        map.addLayer({
+          id: "sample",
+          type: "circle",
+          source: "sample",
+          paint: {
+            // Change circle color based on a new "status" metadata value for geofencing in/out indicator
+            "circle-color": [
+              "case",
+              ["==", ["get", "geofenceStatus"], "INSIDE"],
+              "red",
+              "blue"
+            ],
+            "circle-radius": [
+              "interpolate",
+              ["exponential", 1.2],
+              ["zoom"],
+              0,
+              5,
+              16,
+              10
+            ],
+            // Change circle stroke color on hover/highlight with mouse
+            "circle-stroke-color": [
+              "case",
+              ["==", ["feature-state", "hover"], true],
+              "black",
+              "white"
+            ],
+            "circle-stroke-width": [
+              "interpolate",
+              ["exponential", 1.2],
+              ["zoom"],
+              0,
+              1,
+              16,
+              3
+            ]
+          }
+        });
+
+        // Start querying for new asset data every 1 sec
+        setInterval(() => {
+          fetch("$$$PULUMIURL$$$")
+            .then(response => {
+              return response.json();
+            })
+            .then(data => {
+              const keys = Object.keys(data);
+              if (!keys.includes("message")) {
+                //Set it on the map
+                map.getSource("sample").setData(data);
+              } else {
+                console.log(data);
+              }
+            });
+        }, 1000);
+
+        // Create a popup showing asset metadata on mouse hover
+        var popup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false
+        });
+
+        let selectedId = 0;
+
+        map.on("mousemove", function(e) {
+          const features = map.queryRenderedFeatures(e.point, {
+            layers: ["sample"]
+          });
+
+          if (!features.length) {
+            map.getCanvas().style.cursor = "";
+            map.removeFeatureState({
+              source: "sample",
+              id: selectedId
+            });
+            popup.remove();
+            return;
+          }
+          const f = features[0];
+          selectedId = f.id;
+          map.getCanvas().style.cursor = "pointer";
+
+          const coordinates = f.geometry.coordinates.slice();
+          const id = f.properties.id;
+          const elevation = f.properties.elevation.toFixed(2);
+          const timestamp = new Date(f.properties.ts * 1000);
+          const geofenceStatus = f.properties.geofenceStatus;
+          const text =
+            `<h4> Asset Detail </h4> <ul>` +
+            `<li>Asset ID: ${id} </li>` +
+            `<li>Timestamp: ${timestamp} </li>` +
+            `<li>Elevation: ${elevation} meters </li>` +
+            `<li>Status: ${geofenceStatus} geofence </li> </ul>`;
+          map.setFeatureState(
+            {
+              source: "sample",
+              id: selectedId
+            },
+            {
+              hover: true
+            }
+          );
+          popup
+            .setLngLat(coordinates)
+            .setHTML(text)
+            .addTo(map);
+        });
+      });
+    </script>
+  </body>
+</html>

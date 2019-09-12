@@ -1,9 +1,18 @@
 # Logs
+.DS_Store
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Stuff
+/src/IoTHarness/index.js
+/src/frontEnd/index.html
+Pulumi.*.yaml
+/src/IoTHarness/AmazonRootCA1.pem
+/src/IoTHarness/harness-certificate.pem.crt
+/src/IoTHarness/harness-private.pem.key
 
 # Runtime data
 pids

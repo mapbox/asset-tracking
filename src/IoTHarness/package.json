@@ -1,0 +1,16 @@
+{
+  "name": "localtest",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@turf/along": "^6.0.1",
+    "@turf/helpers": "^6.1.4",
+    "aws-iot-device-sdk": "^2.2.1"
+  }
+}
