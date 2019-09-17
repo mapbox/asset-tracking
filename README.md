@@ -224,10 +224,12 @@ If you would like to test with your own tilesets, you will need to follow these 
 Now that you have built your infrastructure - here are a few things to try next.
 
 1. Open up the AWS Console and trace the data through Cloudwatch. Watch it from ingestion, through Kinesis into Lambda, and into Dynamo and S3.
-2. Create some new geofence tilesets via the Mapbox Datasets editor or upload your own. Update their properties and add that information to the stream via the stream processor.
-3. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the notification service.
-4. Alter the scale. While most of these services are scalable by default (IoT Core, API Gateway, Dynamo),  if you want to experiment with scaling further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with ingesting and processing more records.
-5. Deploy to another region. Create another stack and deploy again. Then try and find a way to deploy it to every AWS region!
+2. Change the Lambda functions. The Stream Processor does the heavy lifing on the data. Make some updates by adding more API calls, perhaps add some new `npm` packages and insert that data into Dynamo. The Query Processor uses [Turf](https://turfjs.org/) to standardize the data - but there are a large number of other modules to do even more geospatial work. Try some out and send your map new data.
+3. Create some new geofence tilesets via the Mapbox Datasets editor or upload your own. Update their properties and add that information to the stream via the stream processor.
+4. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the notification service.
+5. Alter the scale. While most of these services are scalable by default (IoT Core, API Gateway, Dynamo),  if you want to experiment with scaling further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with ingesting and processing more records.
+6. Deploy to another region. Create another stack and deploy again. Then try and find a way to deploy it to every AWS region!
+7. Explore Pulumi - use the stack graph to explore your resource dependencies and then try to add some more. You'll probably run ito IAM issues, so also take a glance at the [AWS documentation](https://docs.aws.amazon.com/iam/index.html) as you build. Most of all - check out how their [lambda functions are magic](https://www.pulumi.com/blog/lambdas-as-lambdas-the-magic-of-simple-serverless-functions/).
 
 ## Built With
 
