@@ -30,7 +30,7 @@
   <body>
     <div id="map"></div>
     <script>
-      var transformRequest = function(url, resourceType) {
+      const transformRequest = (url, resourceType) => {
         const isMapboxRequest =
           url.slice(8, 22) === "api.mapbox.com" ||
           url.slice(10, 26) === "tiles.mapbox.com";
@@ -129,14 +129,14 @@
         }, 1000);
 
         // Create a popup showing asset metadata on mouse hover
-        var popup = new mapboxgl.Popup({
+        const popup = new mapboxgl.Popup({
           closeButton: false,
           closeOnClick: false
         });
 
         let selectedId = 0;
 
-        map.on("mousemove", function(e) {
+        map.on("mousemove", (e) => {
           const features = map.queryRenderedFeatures(e.point, {
             layers: ["sample"]
           });

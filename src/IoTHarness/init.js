@@ -1,16 +1,8 @@
-var awsIot = require("aws-iot-device-sdk");
-var turf = require("@turf/along").default;
-var route = require("./route.json");
+const awsIot = require("aws-iot-device-sdk");
+const turf = require("@turf/along").default;
+const route = require("./route.json");
 
-//
-// Replace the values of '<YourUniqueClientIdentifier>' and '<YourCustomEndpoint>'
-// with a unique client identifier and custom host endpoint provided in AWS IoT.
-// NOTE: client identifiers must be unique within your AWS account; if a client attempts
-// to connect with a client identifier which is already in use, the existing
-// connection will be terminated.
-//
-//These keys can be retrieved from the IoT Core console
-var device = awsIot.device({
+const device = awsIot.device({
   keyPath: "./harness-private.pem.key",
   certPath: "./harness-certificate.pem.crt",
   caPath: "./AmazonRootCA1.pem",
@@ -18,11 +10,7 @@ var device = awsIot.device({
   host: "$$INSERT$$"
 });
 
-//
-// Device is an instance returned by mqtt.Client(), see mqtt.js for full
-// documentation.
-//
-device.on("connect", function() {
+device.on("connect", () => {
   console.log("connected");
   runTest();
   // * Uncomment this out to subscribe
@@ -35,7 +23,7 @@ device.on("reconnect", () => {
 });
 
 //*  Uncomment to see the feed from the stream
-// device.on("message", function(topic, payload) {
+// device.on("message", (topic, payload) => {
 //   console.log("message", topic, payload.toString());
 // });
 

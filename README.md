@@ -72,7 +72,7 @@ You need a valid Mapbox token to make requests to Mapbox APIs with a public (`pk
 
 ## Installation
 
-Once you have cloned this repository, cd into the `src` directory and run `npm install`. This will get the project bootstrapped and ready to deploy.
+Once you have cloned this repository, cd into the `src` directory and run `npm ci`. This will get the project bootstrapped and ready to deploy.
 
 Once you have completed this and set your AWS credentials, run the following from inside `src`.
 
@@ -134,25 +134,65 @@ Your initial deployment will output the following
 
 ### Sending Data
 
-This solution contains a testing Harness that will generate data and pass it to your IoT Core endpoint.  Use the following commands to install and start sending data to the endpoint.
+This solution contains a testing Harness that will generate data and pass it to your IoT Core endpoint.  Use the following commands to install and start sending data to the endpoint. This will also start a webserver to [visualize the data you are sending](#visualizing-data).
 
 ```bash
 cd IoTHarness
-npm install
-node index.js
+npm ci
+npm start
 ```
 
 After starting the testing Harness, validate that the harness is sending sample data.
 
-![harness](https://cl.ly/35acd20cdbd7/download/Image%202019-08-26%20at%206.35.27%20PM.png)
+![harness](assets/validate.png)
 
-Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page.
+Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page. 
 
 ![IoTTest](assets/IoTTest.png)
 
+You will need to send data with the following minimum schema:
+
+```json
+{
+"id": number,
+"coordinates": [float,float],
+"timestamp": timestamp
+...
+}
+```
+
+You can pass any other propertie you like, but the listed ones are required.
+
 ### Visualizing Data
 
-To visualize sample data in the pipeline after deploying and starting the testing harness, open `src/frontend/index.html` in a browser. The sample web page will query the Dynamo-backed API and display current asset positions on a Mapbox map.
+The solution will deploy an API that queries Dynamo.
+
+![url](assets/Output.png)
+
+You can paste it directly into your browser to query it. If there isn't any data, you will see the following:
+
+```json
+{ "message": "No assets are currently available." }
+```
+
+If there is data in Dynamo, you will see a geoJSON Feature Collection. It will looks similar to this, but may have additional properties based on the data you send.
+
+```json
+{
+  "type": "Feature",
+  "geometry": {
+    "type": "Point",
+    "coordinates": [125.6, 10.1]
+  },
+  "properties": {
+    "id": 1,
+    "elevation": 0.0,
+    "geofenceStatus":"INSIDE"
+  }
+}
+```
+
+If you want to visualize, via a map, the sample data in the pipeline you will need to [starting the testing harness](#sending-data) and then open `localhost:5000` in a browser. The sample web page will query the Dynamo-backed API and display current asset positions on a Mapbox map.
 
 This should result in the map below. The map shows the live asset location and asset metadata in a mouseover tooltip:
 
@@ -178,6 +218,15 @@ If you would like to test with your own tilesets, you will need to follow these 
 4. Re-deploy via `pulumi up`.
 5. Update your IoTHarness `route.json` to include points that will fall into those geofences.
 6. Run your IoTHarness with `node index.js`.
+
+## Next Steps
+
+Now that you have built your infrastructure - here are a few things to try next.
+
+1. Open up the AWS Console and trace the data through Cloudwatch. Watch it from ingestion, through Kinesis into Lambda, and into Dynamo and S3.
+2. Create some new geofence tilesets via the Mapbox Datasets editor or upload your own. Update their properties and add that information to the stream via the stream processor.
+3. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the service.
+4. Alter the scale - most of these services are scalable by default (IoT Core, API Gateway, Dynamo). If you want to try and scale this further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with processing more records and keep from developing a backlog of items.
 
 ## Built With
 

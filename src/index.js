@@ -1,4 +1,3 @@
-"use strict";
 const pulumi = require("@pulumi/pulumi");
 const aws = require("@pulumi/aws");
 const awsx = require("@pulumi/awsx");
@@ -14,7 +13,7 @@ const config = new pulumi.Config("assettracking");
 const timeToLive = 5;
 
 //* Set Tileset ID for geofencing
-//* Update the tileset ID to your own geofence mapID
+//* If you would like to use your own geofences, swap this tileset ID to your own tileset ID
 const mapID = "mbxsolutions.cjzsxn0ae02jf2uma2dgyspwd-4snub";
 
 //* Specify your IoT Channel to consume in the front-end.
@@ -27,17 +26,20 @@ const getIoTArn = async channel => {
   const iotArn = `arn:aws:iot:${region.name}:${current.accountId}:topic/${channel}`;
   return iotArn;
 };
-//* Set your AWS IoT Endpoint
+//* Set your AWS IoT Endpoint - this is used to generate the IoTHarness
 const IoTEndpoint = aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" })
   .endpointAddress;
 
 //* Set your Mapbox token for use in the elevation query
+//* This token can be used to call any Mapbox API
 const mapboxToken = config.require("token");
 
 //* Create S3 Bucket
+//* This is where the all the ingested data ends up.
 const bucket_raw = new aws.s3.Bucket("archive");
 
 //* Create Dynamo Table
+//* This manages the state and location of all assets
 const assetTable = new aws.dynamodb.Table("assetTable", {
   attributes: [
     {
@@ -58,6 +60,7 @@ const assetTable = new aws.dynamodb.Table("assetTable", {
 });
 
 //* Create API to read Dynamo
+//* This will scan the table and convert it to geojson for consumption via GL-JS
 const endpoint = new awsx.apigateway.API("mapboxQuery", {
   routes: [
     {
@@ -74,6 +77,7 @@ const endpoint = new awsx.apigateway.API("mapboxQuery", {
         };
         ddb.scan(params, (err, data) => {
           if (data.Items.length > 0) {
+            //All data processing occurs here
             const features = data.Items.map(item => {
               let featureParams = {};
               let itemKeys = Object.keys(item);
@@ -91,6 +95,7 @@ const endpoint = new awsx.apigateway.API("mapboxQuery", {
               return point;
             });
             const featureCollection = turf.featureCollection(features);
+            //Data is transmitted to the client here
             cb(undefined, {
               statusCode: 200,
               body: Buffer.from(
@@ -126,12 +131,15 @@ const endpoint = new awsx.apigateway.API("mapboxQuery", {
 });
 
 //* Create Kinesis stream for ingestion
+//* All data from IoT Core is forwarded to this stream
 const ingestStream = new aws.kinesis.Stream("ingestAssets", {
+  //To increase scale, increase your shard count
   shardCount: 1,
   retentionPeriod: 72
 });
 
 //* Create IoT Rule to push into Kinesis stream
+//* This forwards all data on the specific channel into Kinesis
 const iotRole = new aws.iam.Role("iotRole", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
@@ -177,11 +185,13 @@ const iotRule = new aws.iot.TopicRule("iotAssetIngest", {
     roleArn: iotRole.arn,
     streamName: ingestStream.name
   },
+  //If you want to downselect from your stream, you can change this.
   sql: "SELECT * FROM 'assetingest'",
   sqlVersion: "2015-10-08"
 });
 
 //* Create Firehose and associated IAM roles to accept your archived data
+//* Firehose will collect and deposit enriched data into S3
 const firehoseIAMRole = new aws.iam.Role("firehoserole", {
   assumeRolePolicy: JSON.stringify({
     Version: "2012-10-17",
@@ -238,6 +248,7 @@ const ingestFirehose = new aws.kinesis.FirehoseDeliveryStream("assetFirehose", {
   extendedS3Configuration: {
     bucketArn: bucket_raw.arn,
     bufferInterval: 120,
+    //This defines the size of output written to S3. Larger = bigger payload.
     bufferSize: 5,
     compressionFormat: "GZIP",
     roleArn: firehoseIAMRole.arn
@@ -329,6 +340,8 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
     const template = `https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?pluginName=ATSolution&access_token=${mapboxToken}`;
     const elevationQuery = new elevation.TerrainRGBquery(template);
     for (const [i, record] of event.Records.entries()) {
+      //All data processing occurs here
+      //This loop applies to each record ingested by Lambda from Kinesis
       console.log("Reading Data");
       const item = record.kinesis.data;
       const b = new Buffer(item, "base64").toString("utf-8");
@@ -396,6 +409,8 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
 const kinesisLambdaEventMapping = new aws.lambda.EventSourceMapping(
   "map2Kinesis",
   {
+    //This defines how many records to pick up per Lambda invocation.
+    //You will need to align this against ingestion volume and processing time.
     batchSize: 25,
     enabled: true,
     eventSourceArn: ingestStream.arn,
@@ -404,6 +419,8 @@ const kinesisLambdaEventMapping = new aws.lambda.EventSourceMapping(
   }
 );
 
+
+//* This section writes all the necessary files for testing and validation
 const harnessCert = new aws.iot.Certificate("harnessCert", {
   active: true
 });
@@ -461,4 +478,5 @@ endpoint.url.apply(endpoint => {
   fs.writeFileSync("./frontEnd/index.html", newHTMLToken);
 });
 
+//* This exports the URL that queries Dynamo
 exports.url = endpoint.url;
