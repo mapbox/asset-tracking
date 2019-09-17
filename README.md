@@ -161,7 +161,7 @@ You will need to send data with the following minimum schema:
 }
 ```
 
-You can pass any other propertie you like, but the listed ones are required.
+You can pass any other properties you like, but the listed ones are required.
 
 ### Visualizing Data
 
@@ -169,13 +169,13 @@ The solution will deploy an API that queries Dynamo.
 
 ![url](assets/Output.png)
 
-You can paste it directly into your browser to query it. If there isn't any data, you will see the following:
+You can paste it directly into your browser to query Dynamo. If there isn't any data, you will see the following:
 
 ```json
 { "message": "No assets are currently available." }
 ```
 
-If there is data in Dynamo, you will see a geoJSON Feature Collection. It will looks similar to this, but may have additional properties based on the data you send.
+If there is data in Dynamo, you will see a geoJSON Feature Collection. It will look similar to the sample below, but may have additional properties based on the data you have sent.
 
 ```json
 {
@@ -192,7 +192,7 @@ If there is data in Dynamo, you will see a geoJSON Feature Collection. It will l
 }
 ```
 
-If you want to visualize, via a map, the sample data in the pipeline you will need to [starting the testing harness](#sending-data) and then open `localhost:5000` in a browser. The sample web page will query the Dynamo-backed API and display current asset positions on a Mapbox map.
+If you want to visualize your data via a map you will need to [starting the testing harness](#sending-data) and then open `localhost:5000` in a browser. The sample web page will query the Dynamo-backed API and display current asset positions on a Mapbox map.
 
 This should result in the map below. The map shows the live asset location and asset metadata in a mouseover tooltip:
 
@@ -204,17 +204,17 @@ When an asset is inside one of the geofenced regions, the point-color will chang
 
 You can query the DynamoDB API endpoint to return all current asset locations and metadata.  To get your stack API endpoint, run `pulumi stack output url`.  Fetch the URL using your client of choice i.e. Chrome.
 
-The [Mapbox Stream processor](https://github.com/mapbox/assetTrackingBlueprint/blob/master/src/index.js#L284) also has an option to push data into an IoT topic for real-time display of data in a browser client. This functionality is enabled by default, through the `frontend` topic. In order to consume this topic in a browser, please consult the [AWS documentation](https://github.com/aws/aws-iot-device-sdk-js).
+The [Mapbox Stream processor](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L327) also has an option to push data into an IoT topic for real-time display of data in a browser client. This functionality is enabled by default, through the `frontend` topic. In order to consume this topic in a browser, please consult the [AWS documentation](https://github.com/aws/aws-iot-device-sdk-js).
 
 ### Geofencing
 
-As part of the processing pipeline, location data is [geofenced in real-time](https://github.com/mapbox/assetTrackingBlueprint/blob/master/src/index.js#L333). This utilizes a sample polygon tileset whose shapes each have a `name` parameter. Every point is compared against that tileset via the Mapbox [Tilequery API](https://docs.mapbox.com/api/maps/#tilequery). If a point falls into one of these polygons, it is logged as `INSIDE` else `OUTSIDE`. The sample tileset is public and can be accessed with any Mapbox token.
+As part of the processing pipeline, location data is [geofenced in real-time](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L365). This utilizes a sample polygon tileset whose shapes each have a `name` parameter. Every point is compared against that tileset via the Mapbox [Tilequery API](https://docs.mapbox.com/api/maps/#tilequery). If a point falls into one of these polygons, it is logged as `INSIDE` else `OUTSIDE`. The sample tileset is public and can be accessed with any Mapbox token.
 
 If you would like to test with your own tilesets, you will need to follow these steps:
 
 1. Create a polygon tileset, ensuring it has a `name` attribute.
 2. Upload it to your Mapbox account.
-3. Copy the tileset ID and [paste it into the source code](https://github.com/mapbox/assetTrackingBlueprint/blob/master/src/index.js#L18)
+3. Copy the tileset ID and [paste it into the source code](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L17)
 4. Re-deploy via `pulumi up`.
 5. Update your IoTHarness `route.json` to include points that will fall into those geofences.
 6. Run your IoTHarness with `node index.js`.
@@ -225,8 +225,9 @@ Now that you have built your infrastructure - here are a few things to try next.
 
 1. Open up the AWS Console and trace the data through Cloudwatch. Watch it from ingestion, through Kinesis into Lambda, and into Dynamo and S3.
 2. Create some new geofence tilesets via the Mapbox Datasets editor or upload your own. Update their properties and add that information to the stream via the stream processor.
-3. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the service.
-4. Alter the scale - most of these services are scalable by default (IoT Core, API Gateway, Dynamo). If you want to try and scale this further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with processing more records and keep from developing a backlog of items.
+3. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the notification service.
+4. Alter the scale. While most of these services are scalable by default (IoT Core, API Gateway, Dynamo),  if you want to experiment with scaling further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with ingesting and processing more records.
+5. Deploy to another region. Create another stack and deploy again. Then try and find a way to deploy it to every AWS region!
 
 ## Built With
 
