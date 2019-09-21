@@ -1,6 +1,6 @@
 # Asset Tracking Solution
 
-This project will deploy a serverless Asset Tracking infrastructure using Mapbox, AWS, and Pulumi, as referenced [here](https://blog.mapbox.com/how-to-set-up-an-asset-tracking-architecture-fe5565f6df9) and discussed in detail [here](https://www.mapbox.com/use-cases/asset-tracking/solutions-white-paper/).
+This project will deploy a serverless [Asset Tracking](https://www.mapbox.com/solutions/asset-tracking) infrastructure using Mapbox, AWS, and Pulumi.
 
 This repository contains the following:
 
@@ -8,7 +8,7 @@ This repository contains the following:
 - Node scripts to send sample events to the pipeline
 - A sample web map to visualize the live location and status of events sent to the pipeline.
 
-After deploying this project, you will see the following result:
+After deploying this solution, you will have see a sample live asset dashboard .
 ![deployed](https://cl.ly/1d14f7b5dc78/download/Screen%20Recording%202019-08-26%20at%2006.28%20PM.gif)
 
 ## Getting started
