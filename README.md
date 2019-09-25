@@ -17,9 +17,13 @@ Before you begin, make sure you have the following tools configured:
 
 ### AWS Account
 
-For more details on how to get your AWS credentials and set them for use with Pulumi, [read their setup instructions](https://www.pulumi.com/docs/reference/clouds/aws/setup/).
+You will need an AWS account in order to deploy the infrastructure via Pulumi. If you do not have one, please read the [Getting Started with AWS](https://aws.amazon.com/getting-started/). 
 
-If you do not have an AWS profile configured, set the following environment variables in your terminal:
+Once you have an account, you can get more details on how to get your AWS credentials and set them for use with Pulumi by [reading their setup instructions](https://www.pulumi.com/docs/reference/clouds/aws/setup/).
+
+You do not need to have `aws-cli` installed, but it can help with [setting up your AWS profile](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-configure.html). Installation instructions for `aws-cli` can be found in [its AWS documentation](https://docs.aws.amazon.com/cli/index.html).
+
+If you do not want to set up a terminal profile, or if you wish to set your credentials manually you can do so via your terminal.
 
 ```bash
 export AWS_ACCESS_KEY_ID={my-aws-access-key}
@@ -42,7 +46,11 @@ If you are using an IAM user for AWS credentials, your user must have permission
 
 ### Pulumi CLI
 
-Pulumi is used to deploy the solution AWS infastructure. Follow the instructions below to install the Pulummi CLI, or [consult the documentation](https://www.pulumi.com/docs/reference/install/) for more details.
+Pulumi is used to deploy the solution AWS infastructure. Follow the instructions below to install the Pulumi CLI, or [consult the documentation](https://www.pulumi.com/docs/reference/install/) for more details.
+
+You will also need to sign up for a free account with Pulumi. Without one you will likely be prompted to create one when you run your first CLI command.
+
+![prompt](assets/prompt.png)
 
 #### Mac
 
@@ -69,6 +77,8 @@ Pulumi requires [Node.js v8+](https://nodejs.org/en/download/).  Check that your
 ### Mapbox Account
 
 You need a valid Mapbox token to make requests to Mapbox APIs with a public (`pk`) token scope. Sign up for Mapbox [here](https://mapbox.com/signup) and find your access token [here](https://account.mapbox.com/).
+
+You can use your default token, or create one with only `Public` scopes.
 
 ## Installation
 
