@@ -326,7 +326,7 @@ const kinesisLambdaRolePolicy = new aws.iam.RolePolicy(
 
 const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
   role: kinesisLambdaRole,
-  runtime: "nodejs8.10",
+  runtime: "nodejs12.x",
   timeout: 30,
   callback: async (event, context, callback) => {
     const AWS = require("aws-sdk");
@@ -344,7 +344,7 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
       //This loop applies to each record ingested by Lambda from Kinesis
       console.log("Reading Data");
       const item = record.kinesis.data;
-      const b = new Buffer(item, "base64").toString("utf-8");
+      const b = new Buffer.from(item, "base64").toString("utf-8");
       const parsedData = JSON.parse(b);
       const parsedKeys = Object.keys(parsedData);
 
@@ -389,7 +389,7 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
       const fhStatus = await fh
         .putRecord({
           DeliveryStreamName: ingestFirehose.name.get(),
-          Record: { Data: new Buffer(JSON.stringify(parsedData)) }
+          Record: { Data: new Buffer.from(JSON.stringify(parsedData)) }
         })
         .promise();
       console.log(fhStatus);
