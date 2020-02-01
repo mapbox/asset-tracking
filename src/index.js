@@ -389,7 +389,7 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
       const fhStatus = await fh
         .putRecord({
           DeliveryStreamName: ingestFirehose.name.get(),
-          Record: { Data: new Buffer.from(JSON.stringify(parsedData)) }
+          Record: { Data: new Buffer.from(JSON.stringify(params.Item)) }
         })
         .promise();
       console.log(fhStatus);
