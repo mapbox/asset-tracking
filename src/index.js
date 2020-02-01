@@ -34,6 +34,15 @@ const IoTEndpoint = aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" })
 //* This token can be used to call any Mapbox API
 const mapboxToken = config.require("token");
 
+//* Function to convert Dynamo data to CSV for Firehose
+const toCSV = (obj) => {
+  const valueArray = Object.values(obj);
+  const outputString = valueArray.join(',')
+  const row = JSON.stringify(outputString)+"\n"
+  const payload = new Buffer.from(row)
+  return payload
+}
+
 //* Create S3 Bucket
 //* This is where the all the ingested data ends up.
 const bucket_raw = new aws.s3.Bucket("archive");
@@ -389,7 +398,7 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
       const fhStatus = await fh
         .putRecord({
           DeliveryStreamName: ingestFirehose.name.get(),
-          Record: { Data: new Buffer.from(JSON.stringify(parsedData)) }
+          Record: { Data: toCSV(params.Item)}
         })
         .promise();
       console.log(fhStatus);
