@@ -45,7 +45,7 @@ Before you begin, make sure you have the following tools configured:
 
 ### AWS Account
 
-You will need an AWS account in order to deploy the infrastructure via Pulumi. If you do not have one, please read the [Getting Started with AWS](https://aws.amazon.com/getting-started/). 
+You will need an AWS account in order to deploy the infrastructure via Pulumi. If you do not have one, please read the [Getting Started with AWS](https://aws.amazon.com/getting-started/).
 
 Once you have an account, you can get more details on how to get your AWS credentials and set them for use with Pulumi by [reading their setup instructions](https://www.pulumi.com/docs/reference/clouds/aws/setup/).
 
@@ -184,7 +184,7 @@ After starting the testing Harness, validate that the harness is sending sample 
 
 ![harness](assets/validate.png)
 
-Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page. 
+Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page.
 
 ![IoTTest](assets/IoTTest.png)
 
@@ -353,7 +353,7 @@ The core architecture works as follows:
 8. API Gateway: Front-end query endpoint
 9. [Turf](https://turfjs.org/): Data processing
 10. [Pulumi](https://www.pulumi.com/docs/index.html): Infrastructure as Code
-11. MemSQL: Streaming database and fast analytics.
+11. [MemSQL](https://www.memsql.com/): Streaming database and fast analytics.
 
 ## Authors
 
