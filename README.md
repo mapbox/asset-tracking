@@ -7,9 +7,37 @@ This repository contains the following:
 - Deployment code using [Pulumi](https://www.pulumi.com/docs/index.html)
 - Node scripts to send sample events to the pipeline
 - A sample web map to visualize the live location and status of events sent to the pipeline.
+- SQL scripts and instructions for ingesting timeseries data into [MemSQL](https://www.memsql.com/).
 
 After deploying this solution, you will have see a sample live asset dashboard .
 ![deployed](https://cl.ly/1d14f7b5dc78/download/Screen%20Recording%202019-08-26%20at%2006.28%20PM.gif)
+
+- [Asset Tracking Solution](#asset-tracking-solution)
+  - [Getting started](#getting-started)
+    - [AWS Account](#aws-account)
+      - [AWS IAM](#aws-iam)
+    - [Pulumi CLI](#pulumi-cli)
+      - [Mac](#mac)
+      - [Windows](#windows)
+    - [Node.js](#nodejs)
+    - [Mapbox Account](#mapbox-account)
+  - [Installation](#installation)
+    - [Organization](#organization)
+  - [Deployment](#deployment)
+  - [Interacting with the pipeline](#interacting-with-the-pipeline)
+    - [Sending Data](#sending-data)
+    - [Visualizing Data](#visualizing-data)
+    - [Querying Data](#querying-data)
+    - [Geofencing](#geofencing)
+  - [Database Integration](#database-integration)
+    - [Deploy MemSQL](#deploy-memsql)
+    - [S3 Pipeline](#s3-pipeline)
+    - [Extension & Alternate Pipelines](#extension--alternate-pipelines)
+  - [Next Steps](#next-steps)
+  - [Built With](#built-with)
+  - [Authors](#authors)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
 
 ## Getting started
 
@@ -229,6 +257,73 @@ If you would like to test with your own tilesets, you will need to follow these 
 5. Update your IoTHarness `route.json` to include points that will fall into those geofences.
 6. Run your IoTHarness with `node index.js`.
 
+## Database Integration
+
+This branch includes a sample script to connect S3 data to [MemSQL](https://www.memsql.com/). There are multiple databases that handle timeseries data well, integration with MemSQL is demonstrated here for ease-of-use and speed to deploy.
+
+### Deploy MemSQL
+
+Once your pipeline is running, you can deploy MemSQL either via Helios (their cloud offering), Docker, or your own infrastructure. Instructions for Docker are reproduced below, and you can find more detailed instructions in the [Deploy MemSQL Guide.](https://docs.memsql.com/v7.0/guides/deploy-memsql/) You will also need to register with MemSQL and obtain a free license key.
+
+```bash
+export LICENSE_KEY=[YOUR LICENSE KEY]
+docker run -i --init \
+  --name memsql-ciab \
+  -e LICENSE_KEY=$LICENSE_KEY \
+  -p 3306:3306 -p 8080:8080 \
+  memsql/cluster-in-a-box
+docker start memsql-ciab
+...
+# Use this command to stop the container
+# docker stop memsql-ciab
+```
+
+This will start MemSQL. You can open the MemSQL client by visiting `localhost:8080`. This is where you can execute the SQL necessary to ingest data from S3.
+
+### S3 Pipeline
+
+MemSQL contains a native functionality to ingest data from S3. Data already present in the bucket path you specify will be ingested when the pipeline is started. MemSQL will monitor the bucket for changes and ingest data as it lands. The SQL snippet below is modified from the [S3 Quickstart](https://docs.memsql.com/v6.8/concepts/pipelines/s3-pipelines-quickstart/) and you can read more about this process in the [MemSQL documentation](https://docs.memsql.com/v6.8/concepts/pipelines/s3-pipelines-overview/).
+
+```sql
+CREATE PIPELINE assetingest
+AS LOAD DATA S3 'BUCKET'
+CONFIG '{"region": "REGION"}'
+CREDENTIALS '{"aws_access_key_id": "AWS ACCESS KEY", "aws_secret_access_key": "AWS SECRET KEY"}'
+INTO TABLE `assetlog`
+LINES STARTING BY '"'
+LINES TERMINATED BY '\n'
+FIELDS TERMINATED BY ',';
+
+START PIPELINE assetingest
+```
+
+This will create and start a pipeline to ingest data. You can see example queries of this data in [init.sql](./src/init.sql).
+
+### Extension & Alternate Pipelines
+
+Data export to S3 is controlled by the Kinesis Firehose setting in [index.js](./src/index.js).
+
+`bufferInterval` sets the time in seconds.
+`bufferSize` sets the size in MB.
+
+Records are deposited in S3 when the first of those thresholds are met. You can tune this to your likeing and re-deploy with `pulumi up`.
+
+```javascript
+const ingestFirehose = new aws.kinesis.FirehoseDeliveryStream("assetFirehose", {
+  destination: "extended_s3",
+  extendedS3Configuration: {
+    bucketArn: bucket_raw.arn,
+    bufferInterval: 60,
+    //This defines the size of output written to S3. Larger = bigger payload.
+    bufferSize: 5,
+    compressionFormat: "GZIP",
+    roleArn: firehoseIAMRole.arn
+  }
+});
+```
+
+If you have need of faster ingest, consider using [Kafka](https://docs.memsql.com/v6.8/concepts/pipelines/kafka-extractor/) and writing directly to a Kafka topic in the Lambda function.
+
 ## Next Steps
 
 Now that you have built your infrastructure - here are a few things to try next.
@@ -258,6 +353,7 @@ The core architecture works as follows:
 8. API Gateway: Front-end query endpoint
 9. [Turf](https://turfjs.org/): Data processing
 10. [Pulumi](https://www.pulumi.com/docs/index.html): Infrastructure as Code
+11. MemSQL: Streaming database and fast analytics.
 
 ## Authors
 

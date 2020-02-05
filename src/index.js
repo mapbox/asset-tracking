@@ -9,9 +9,6 @@ const axios = require("axios");
 
 const config = new pulumi.Config("assettracking");
 
-//* Establish TTL (in minutes) for your Dynamo Table
-const timeToLive = 5;
-
 //* Set Tileset ID for geofencing
 //* If you would like to use your own geofences, swap this tileset ID to your own tileset ID
 const mapID = "mbxsolutions.cjzsxn0ae02jf2uma2dgyspwd-4snub";
@@ -256,7 +253,7 @@ const ingestFirehose = new aws.kinesis.FirehoseDeliveryStream("assetFirehose", {
   destination: "extended_s3",
   extendedS3Configuration: {
     bucketArn: bucket_raw.arn,
-    bufferInterval: 120,
+    bufferInterval: 60,
     //This defines the size of output written to S3. Larger = bigger payload.
     bufferSize: 5,
     compressionFormat: "GZIP",
@@ -380,9 +377,9 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
           params.Item.geofenceName = geofenceData[0].properties.name;
         } else {
           params.Item.geofenceStatus = "OUTSIDE";
+          params.Item.geofenceName = null;
         }
       }
-      params.Item.expiration = parsedData.timestamp + 60 * timeToLive;
       params.Item.longitude = coordinates !== null ? coordinates[0] : null;
       params.Item.latitude = coordinates !== null ? coordinates[1] : null;
       params.Item.id = parsedData.id;
