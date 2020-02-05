@@ -11,13 +11,36 @@ This repository contains the following:
 After deploying this solution, you will have see a sample live asset dashboard .
 ![deployed](https://cl.ly/1d14f7b5dc78/download/Screen%20Recording%202019-08-26%20at%2006.28%20PM.gif)
 
+- [Asset Tracking Solution](#asset-tracking-solution)
+  - [Getting started](#getting-started)
+    - [AWS Account](#aws-account)
+      - [AWS IAM](#aws-iam)
+    - [Pulumi CLI](#pulumi-cli)
+      - [Mac](#mac)
+      - [Windows](#windows)
+    - [Node.js](#nodejs)
+    - [Mapbox Account](#mapbox-account)
+  - [Installation](#installation)
+    - [Organization](#organization)
+  - [Deployment](#deployment)
+  - [Interacting with the pipeline](#interacting-with-the-pipeline)
+    - [Sending Data](#sending-data)
+    - [Visualizing Data](#visualizing-data)
+    - [Querying Data](#querying-data)
+    - [Geofencing](#geofencing)
+  - [Next Steps](#next-steps)
+  - [Built With](#built-with)
+  - [Authors](#authors)
+  - [License](#license)
+  - [Acknowledgments](#acknowledgments)
+
 ## Getting started
 
 Before you begin, make sure you have the following tools configured:
 
 ### AWS Account
 
-You will need an AWS account in order to deploy the infrastructure via Pulumi. If you do not have one, please read the [Getting Started with AWS](https://aws.amazon.com/getting-started/). 
+You will need an AWS account in order to deploy the infrastructure via Pulumi. If you do not have one, please read the [Getting Started with AWS](https://aws.amazon.com/getting-started/).
 
 Once you have an account, you can get more details on how to get your AWS credentials and set them for use with Pulumi by [reading their setup instructions](https://www.pulumi.com/docs/reference/clouds/aws/setup/).
 
@@ -156,7 +179,7 @@ After starting the testing Harness, validate that the harness is sending sample 
 
 ![harness](assets/validate.png)
 
-Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page. 
+Alternatively, you can submit events into the `assetingest` topic via the IoT Core Console's Test page.
 
 ![IoTTest](assets/IoTTest.png)
 
