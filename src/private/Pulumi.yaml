@@ -1,0 +1,3 @@
+name: individualATStack
+runtime: nodejs
+description: Individual AT ingestion & processing stacks

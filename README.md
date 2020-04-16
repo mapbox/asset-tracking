@@ -1,6 +1,11 @@
 # Asset Tracking Solution
 
-This project will deploy a serverless [Asset Tracking](https://www.mapbox.com/solutions/asset-tracking) infrastructure using Mapbox, AWS, and Pulumi.
+This project will deploy a serverless [Asset Tracking](https://www.mapbox.com/solutions/asset-tracking) infrastructure using Mapbox, AWS, and Pulumi. It contains two distinct sets of infrastructure
+
+- `public`: Collect and display data that is approved for public consumption. This represents a defined subset of the data stream.
+- `private`: Collect, store, and display all data collected by a group of assets.
+
+All infrastructure is tagged so you can monitor usage and costs on a per-stack basis.
 
 This repository contains the following:
 
@@ -21,18 +26,17 @@ After deploying this solution, you will have see a sample live asset dashboard .
     - [Node.js](#nodejs)
     - [Mapbox Account](#mapbox-account)
   - [Installation](#installation)
+    - [Public Deployment](#public-deployment)
+    - [Private Deployment](#private-deployment)
     - [Organization](#organization)
   - [Deployment](#deployment)
   - [Interacting with the pipeline](#interacting-with-the-pipeline)
     - [Sending Data](#sending-data)
     - [Visualizing Data](#visualizing-data)
     - [Querying Data](#querying-data)
-    - [Geofencing](#geofencing)
-  - [Next Steps](#next-steps)
   - [Built With](#built-with)
   - [Authors](#authors)
   - [License](#license)
-  - [Acknowledgments](#acknowledgments)
 
 ## Getting started
 
@@ -103,9 +107,13 @@ You need a valid Mapbox token to make requests to Mapbox APIs with a public (`pk
 
 You can use your default token, or create one with only `Public` scopes.
 
+---
+
 ## Installation
 
-Once you have cloned this repository, cd into the `src` directory and run `npm ci`. This will get the project bootstrapped and ready to deploy.
+This version of Asset Tracking creates two separate stacks: `public` and `private`.
+
+Once you have cloned this repository, cd into the `src` directory, and run `npm ci` in both `public` and `private`. This will get the project bootstrapped and ready to deploy.
 
 Once you have completed this and set your AWS credentials, run the following from inside `src`.
 
@@ -114,6 +122,10 @@ pulumi stack init testing
 ```
 
 >For more information on `stacks`, see the [Pulumi documentation](https://www.pulumi.com/docs/reference/cli/pulumi_stack/).
+
+### Public Deployment
+
+The public stack collects only a subset of data, defined by IoT Core rules. This stack functions the same as the Asset Tracking infrastructure found in `master`.
 
 Set your region (i.e. `us-west-2`)
 
@@ -139,11 +151,54 @@ Once this is completed, you will be presented with a preview of your infrastruct
 
 Choose `yes` if you wish to deploy.
 
+### Private Deployment
+
+The private stack collects all data, for a specific device ID or IDs. This is defined by the IoT Rule shown below.
+
+```javascript
+const iotRule = new aws.iot.TopicRule(`${customer}IotAssetIngest`, {
+    name: pulumi.interpolate`${customer}assetIngest`,
+    description: "Pass from IoT Core to Asset Tracking",
+    enabled: true,
+    kinesis: {
+      partitionKey: "id",
+      roleArn: iotRole.arn,
+      streamName: ingestStream.name,
+    },
+    //If you want to downselect from your stream, you can change this.
+    sql: `SELECT * FROM 'assetingest' where id = ${identifier}`,
+    sqlVersion: "2015-10-08",
+  });
+```
+
+The private stacks are also integrated with [Rockset](https://rockset.com/), a DBaaS that enables streaming ingestion and HTTP-based queries. This integration supplements the real-time data contained in Dynamo and enables users to query data with SQL to display in their own dashboard or internal BI applications.
+
+Each stack is bound to a Rockset account and API token, which requires additional configuration. In addition to Mapbox tokens and AWS region identifiers, the user must also set the following configuration options.
+
+```bash
+# This indicates the owner of the private stack
+pulumi config set customer <customer>
+```
+
+```bash
+# This is the unique identifier for the device (or devices) transmitting information
+pulumi config set identifier <id>
+```
+
+```bash
+# This is the API token you obtain from your Rockset account
+# For security reasons it is encrypted  
+pulumi config set --secret rockset <API>
+```
+
+You can obtain your Rockset API token from [your console](https://console.rockset.com/apikeys) after signing in.
+
 ### Organization
 
 The solution code is located in `src`.
 
-- `index.js`: Core Pulumi infrastructure code
+- `private`: Private, full data capture infrastructure code. Collects data from subsets of devices and integrated with Rockset for DB storage.
+- `public`: Collects subsets of data from all devices.
 - `IoTHarness`: Sample application that will push data into IoT Core for testing purposes.
 - `frontEnd`: Sample HTML page that queries Dynamo and displays the current results on a map.
 
@@ -151,7 +206,7 @@ The solution code is located in `src`.
 
 As referenced above, all deployments and updates are handled via the `pulumi up` command.
 
-To remove all infratructure used in the stack, run `pulumi destroy`.
+To remove all infratructure used in the stack, run `pulumi destroy`. You must manually delete Rockset collections.
 
 You can skip the preview state by passing a `-y` parameter to `pulumi`.
 
@@ -194,7 +249,7 @@ You will need to send data with the following minimum schema:
 }
 ```
 
-You can pass any other properties you like, but the listed ones are required.
+You can pass any other properties you like, but the listed ones are required. To test Rockset integration, you can add properties to the IoTHarness.
 
 ### Visualizing Data
 
@@ -239,30 +294,7 @@ You can query the DynamoDB API endpoint to return all current asset locations an
 
 The [Mapbox Stream processor](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L327) also has an option to push data into an IoT topic for real-time display of data in a browser client. This functionality is enabled by default, through the `frontend` topic. In order to consume this topic in a browser, please consult the [AWS documentation](https://github.com/aws/aws-iot-device-sdk-js).
 
-### Geofencing
-
-As part of the processing pipeline, location data is [geofenced in real-time](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L365). This utilizes a sample polygon tileset whose shapes each have a `name` parameter. Every point is compared against that tileset via the Mapbox [Tilequery API](https://docs.mapbox.com/api/maps/#tilequery). If a point falls into one of these polygons, it is logged as `INSIDE` else `OUTSIDE`. The sample tileset is public and can be accessed with any Mapbox token.
-
-If you would like to test with your own tilesets, you will need to follow these steps:
-
-1. Create a polygon tileset, ensuring it has a `name` attribute.
-2. Upload it to your Mapbox account.
-3. Copy the tileset ID and [paste it into the source code](https://github.com/mapbox/real-time-location-processing/blob/master/src/index.js#L17)
-4. Re-deploy via `pulumi up`.
-5. Update your IoTHarness `route.json` to include points that will fall into those geofences.
-6. Run your IoTHarness with `node index.js`.
-
-## Next Steps
-
-Now that you have built your infrastructure - here are a few things to try next.
-
-1. Open up the AWS Console and trace the data through Cloudwatch. Watch it from ingestion, through Kinesis into Lambda, and into Dynamo and S3.
-2. Change the Lambda functions. The Stream Processor does the heavy lifing on the data. Make some updates by adding more API calls, perhaps add some new `npm` packages and insert that data into Dynamo. The Query Processor uses [Turf](https://turfjs.org/) to standardize the data - but there are a large number of other modules to do even more geospatial work. Try some out and send your map new data.
-3. Create some new geofence tilesets via the Mapbox Datasets editor or upload your own. Update their properties and add that information to the stream via the stream processor.
-4. Experiment with adding [an SNS resource](https://www.pulumi.com/docs/aws/sns/) and updating your Lambda to funnel geofence status into the notification service.
-5. Alter the scale. While most of these services are scalable by default (IoT Core, API Gateway, Dynamo),  if you want to experiment with scaling further, change the number of Kinesis shards and/or adjust the Lambda batch size. This will help you with ingesting and processing more records.
-6. Deploy to another region. Create another stack and deploy again. Then try and find a way to deploy it to every AWS region!
-7. Explore Pulumi - use the stack graph to explore your resource dependencies and then try to add some more. You'll probably run ito IAM issues, so also take a glance at the [AWS documentation](https://docs.aws.amazon.com/iam/index.html) as you build. Most of all - check out how their [lambda functions are magic](https://www.pulumi.com/blog/lambdas-as-lambdas-the-magic-of-simple-serverless-functions/).
+You can query data by using [BI tools](https://docs.rockset.com/tableau) (such as Tableau), [REST](https://docs.rockset.com/rest-api), or any of Rockset's [SDKs](https://docs.rockset.com/nodejs).
 
 ## Built With
 
@@ -281,6 +313,7 @@ The core architecture works as follows:
 8. API Gateway: Front-end query endpoint
 9. [Turf](https://turfjs.org/): Data processing
 10. [Pulumi](https://www.pulumi.com/docs/index.html): Infrastructure as Code
+11. [Rockset](https://rockset.com/): DBaaS
 
 ## Authors
 
@@ -289,8 +322,3 @@ This solution was created by the [Mapbox Solutions Architecture](https://www.map
 ## License
 
 This project is licensed under the BSD-3-Clause License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Alex Yule for initial research and development
-- Cyrus Najmabadi and Nishi Davidson from Pulumi

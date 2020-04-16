@@ -1,0 +1,12 @@
+{
+    "name": "assetTrackingPublic",
+    "main": "index.js",
+    "dependencies": {
+        "@pulumi/aws": "^1.0.0",
+        "@pulumi/awsx": "^0.18.10",
+        "@pulumi/pulumi": "^1.0.0",
+        "@turf/helpers": "^6.1.4",
+        "axios": "^0.19.2",
+        "terrain-rgb-query": "^0.2.0"
+    }
+}
