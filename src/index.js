@@ -21,14 +21,16 @@ const mapID = "mbxsolutions.cjzsxn0ae02jf2uma2dgyspwd-4snub";
 //* The API Gateway will also provide a batch request as needed.
 const iotFrontEnd = "frontend";
 const getIoTArn = async channel => {
-  const current = await aws.getCallerIdentity({});
+  const current = await aws.getCallerIdentity();
   const region = await aws.getRegion();
   const iotArn = `arn:aws:iot:${region.name}:${current.accountId}:topic/${channel}`;
   return iotArn;
 };
 //* Set your AWS IoT Endpoint - this is used to generate the IoTHarness
-const IoTEndpoint = aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" })
-  .endpointAddress;
+const getIoTEndpoint = async() => {
+  const result = await aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" });
+  return result.endpointAddress;
+}
 
 //* Set your Mapbox token for use in the elevation query
 //* This token can be used to call any Mapbox API
@@ -335,7 +337,7 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
     });
     const fh = new AWS.Firehose();
     const iot = new AWS.IotData({
-      endpoint: IoTEndpoint
+      endpoint: await getIoTEndpoint()
     });
     const template = `https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?pluginName=ATSolution&access_token=${mapboxToken}`;
     const elevationQuery = new elevation.TerrainRGBquery(template);
@@ -468,8 +470,10 @@ axios
   });
 
 const harness = fs.readFileSync("./IoTHarness/init.js").toString();
-const newHarness = harness.replace("$$INSERT$$", IoTEndpoint);
-fs.writeFileSync("./IoTHarness/index.js", newHarness);
+getIoTEndpoint().then(IoTEndpoint => {
+  const newHarness = harness.replace("$$INSERT$$", IoTEndpoint);
+  fs.writeFileSync("./IoTHarness/index.js", newHarness);
+}) 
 
 endpoint.url.apply(endpoint => {
   const oldHTML = fs.readFileSync("./frontEnd/init.html").toString();
