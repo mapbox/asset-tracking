@@ -16,16 +16,6 @@ const timeToLive = 5;
 //* If you would like to use your own geofences, swap this tileset ID to your own tileset ID
 const mapID = "mbxsolutions.cjzsxn0ae02jf2uma2dgyspwd-4snub";
 
-//* Specify your IoT Channel to consume in the front-end.
-//* This enables real-time updates in browser.
-//* The API Gateway will also provide a batch request as needed.
-const iotFrontEnd = "frontend";
-const getIoTArn = async channel => {
-  const current = await aws.getCallerIdentity();
-  const region = await aws.getRegion();
-  const iotArn = `arn:aws:iot:${region.name}:${current.accountId}:topic/${channel}`;
-  return iotArn;
-};
 //* Set your AWS IoT Endpoint - this is used to generate the IoTHarness
 const getIoTEndpoint = async() => {
   const result = await aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" });
@@ -283,8 +273,7 @@ const kinesisLambdaRolePolicy = new aws.iam.RolePolicy(
       .all([
         ingestStream.arn,
         assetTable.arn,
-        ingestFirehose.arn,
-        getIoTArn(iotFrontEnd)
+        ingestFirehose.arn
       ])
       .apply(([ingestStream, assetTable, ingestFirehose, iotArn]) => {
         const lambdaPolicy = JSON.stringify({
@@ -313,11 +302,6 @@ const kinesisLambdaRolePolicy = new aws.iam.RolePolicy(
               Effect: "Allow",
               Action: "firehose:*",
               Resource: ingestFirehose
-            },
-            {
-              Effect: "Allow",
-              Action: "iot:Publish",
-              Resource: iotArn
             }
           ]
         });
@@ -336,9 +320,6 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
       apiVersion: "2012-10-08"
     });
     const fh = new AWS.Firehose();
-    const iot = new AWS.IotData({
-      endpoint: await getIoTEndpoint()
-    });
     const template = `https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?pluginName=ATSolution&access_token=${mapboxToken}`;
     const elevationQuery = new elevation.TerrainRGBquery(template);
     for (const [i, record] of event.Records.entries()) {
@@ -395,15 +376,6 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
         })
         .promise();
       console.log(fhStatus);
-
-      console.log("Writing to IoT");
-      const ioTParams = {
-        topic: iotFrontEnd,
-        payload: JSON.stringify(params.Item),
-        qos: 0
-      };
-      const ioTStatus = await iot.publish(ioTParams).promise();
-      console.log(ioTStatus);
     }
   }
 });
