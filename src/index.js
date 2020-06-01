@@ -16,6 +16,16 @@ const timeToLive = 5;
 //* If you would like to use your own geofences, swap this tileset ID to your own tileset ID
 const mapID = "mbxsolutions.cjzsxn0ae02jf2uma2dgyspwd-4snub";
 
+//* Specify your IoT Channel to consume in the front-end.
+//* This enables real-time updates in browser.
+//* The API Gateway will also provide a batch request as needed.
+const iotFrontEnd = "frontend";
+const getIoTArn = async channel => {
+  const current = await aws.getCallerIdentity();
+  const region = await aws.getRegion();
+  const iotArn = `arn:aws:iot:${region.name}:${current.accountId}:topic/${channel}`;
+  return iotArn;
+};
 //* Set your AWS IoT Endpoint - this is used to generate the IoTHarness
 const getIoTEndpoint = async() => {
   const result = await aws.iot.getEndpoint({ endpointType: "iot:Data-ATS" });
@@ -273,7 +283,8 @@ const kinesisLambdaRolePolicy = new aws.iam.RolePolicy(
       .all([
         ingestStream.arn,
         assetTable.arn,
-        ingestFirehose.arn
+        ingestFirehose.arn,
+        getIoTArn(iotFrontEnd)
       ])
       .apply(([ingestStream, assetTable, ingestFirehose, iotArn]) => {
         const lambdaPolicy = JSON.stringify({
@@ -302,6 +313,11 @@ const kinesisLambdaRolePolicy = new aws.iam.RolePolicy(
               Effect: "Allow",
               Action: "firehose:*",
               Resource: ingestFirehose
+            },
+            {
+              Effect: "Allow",
+              Action: "iot:Publish",
+              Resource: iotArn
             }
           ]
         });
