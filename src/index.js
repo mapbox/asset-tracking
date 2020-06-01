@@ -32,6 +32,8 @@ const getIoTEndpoint = async() => {
   return result.endpointAddress;
 }
 
+const end = getIoTEndpoint()
+
 //* Set your Mapbox token for use in the elevation query
 //* This token can be used to call any Mapbox API
 const mapboxToken = config.require("token");
@@ -335,7 +337,11 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
     const ddb = new AWS.DynamoDB.DocumentClient({
       apiVersion: "2012-10-08"
     });
+
     const fh = new AWS.Firehose();
+    const iot = new AWS.IotData({
+      endpoint: end
+    });
     const template = `https://api.mapbox.com/v4/mapbox.terrain-rgb/{z}/{x}/{y}.pngraw?pluginName=ATSolution&access_token=${mapboxToken}`;
     const elevationQuery = new elevation.TerrainRGBquery(template);
     for (const [i, record] of event.Records.entries()) {
@@ -392,6 +398,15 @@ const kinesisLambda = new aws.lambda.CallbackFunction("mapboxStreamProcessor", {
         })
         .promise();
       console.log(fhStatus);
+
+      console.log("Writing to IoT");
+      const ioTParams = {
+        topic: iotFrontEnd,
+        payload: JSON.stringify(params.Item),
+        qos: 0
+      };
+      const ioTStatus = await iot.publish(ioTParams).promise();
+      console.log(ioTStatus);
     }
   }
 });
