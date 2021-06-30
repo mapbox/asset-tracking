@@ -83,6 +83,12 @@ Requires [homebrew](https://brew.sh) to install.
 brew install pulumi
 ```
 
+You should also make sure you are on the latest version of Pulumi (>=3.5.1)
+
+```bash
+brew upgrade pulumi
+```
+
 #### Windows
 
 Run the following from `cmd.exe`
@@ -95,7 +101,7 @@ If the above command fails, follow the manual install instructions from [Pulumi'
 
 ### Node.js
 
-Pulumi requires [Node.js v8+](https://nodejs.org/en/download/).  Check that your installed node version is >= v8 with `node -v`.
+Pulumi requires [Node.js v12+](https://nodejs.org/en/download/).  Check that your installed node version is >= v12 with `node -v`.
 
 ### Mapbox Account
 
